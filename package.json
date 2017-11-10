@@ -1,0 +1,14 @@
+{
+    "name": "zork-bot",
+    "version": "1.0.0",
+    "description": "Play Zork through a bot on Discord",
+    "main": "bot.js",
+    "author": "hsilvey",
+    "dependencies": {
+        "discord.io": "^2.5.3",
+        "eslint": "^4.10.0",
+        "request": "^2.83.0",
+        "uuid": "^3.1.0",
+        "winston": "^2.4.0"
+    }
+}
