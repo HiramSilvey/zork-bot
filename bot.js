@@ -8,6 +8,14 @@ let fs = require('fs');
 let baseURL = "http://zork.ruf.io/";
 
 let saves = []
+let activePlayers = new Set()
+
+// Configure logger settings
+logger.remove(logger.transports.Console);
+logger.add(logger.transports.Console, {
+    colorize: true
+});
+logger.level = 'debug';
 
 fs.readFile("./.saves", (err, data) => {
     if (err) {
@@ -24,24 +32,20 @@ fs.readFile("./.saves", (err, data) => {
     }
 });
 
-fs.writeFile("./test", "Hey there!", function(err) {
-    if(err) {
+/*
+fs.writeFile("./test", "Hey there!", function (err) {
+    if (err) {
         return console.log(err);
     }
 
     console.log("The file was saved!");
-}); 
-
-// Configure logger settings
-logger.remove(logger.transports.Console);
-logger.add(logger.transports.Console, {
-    colorize: true
 });
-logger.level = 'debug';
+*/
+
 // Initialize Discord Bot
 let bot = new Discord.Client({
-   token: auth.token,
-   autorun: true
+    token: auth.token,
+    autorun: true
 });
 bot.on('ready', function (evt) {
     logger.info('Connected');
@@ -49,39 +53,47 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
 bot.on('message', function (user, userID, channelID, message, evt) {
-    if (message.substring(0, 2) == '!z') {
-        let args = message.substring(2).split(/\s+/);
-        let idx = 0
-        if (args[0] == '') {
-            idx = 1
-        }
-        let cmd = args[idx];
 
-        function sendCommand (cmd) {
-            request(baseURL + '>' + cmd, function (error, response, body) {
-                bot.sendMessage({
-                    to: channelID,
-                    message: JSON.parse(body)['msg'].substring(1)
-                });
+    function sendCommand(cmd) {
+        request(baseURL + '>' + cmd, function (error, response, body) {
+            let msg = ''
+            try {
+                msg = JSON.parse(body)['msg'].substring(1);
+            } catch (err) {
+                logger.warning('Bad JSON recieved, ignoring...');
+            }
+            bot.sendMessage({
+                to: channelID,
+                message: msg
             });
-        }
+        });
+    }
 
-        args = args.splice(1);
-        switch(cmd) {
+    if (message.substring(0, 2) == '!z') {
+        let args = message.toLowerCase().substring(2).split(/\s+/);
+        let idx = 0;
+        let cmd = '';
+
+        if (args[0] == '' && args.length > idx) {
+            cmd = args[1];
+        }
+        switch (cmd) {
             case 'play':
+                activePlayers.add(userID);
                 sendCommand('look');
-            break;
+                break;
             case 'quit':
+                activePlayers.delete(userID);
                 bot.sendMessage({
                     to: channelID,
-                    message: 'thanks for playing!'
+                    message: 'thanks for playing @' + user + '!'
                 });
-            break;
+                break;
             default:
-                bot.sendMessage({
-                    to: channelID,
-                    message: 'lol what?'
-                });
-         }
-     }
+                return
+        }
+    } else if (activePlayers.has(userID)) {
+        sendCommand(message);
+        return;
+    }
 });
