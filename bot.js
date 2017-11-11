@@ -3,8 +3,34 @@ let logger = require('winston');
 let request = require('request');
 let uuid = require('uuid');
 let auth = require('./auth.json');
+let fs = require('fs');
 
 let baseURL = "http://zork.ruf.io/";
+
+let saves = []
+
+fs.readFile("./.saves", (err, data) => {
+    if (err) {
+        logger.error(err);
+    } else {
+        let lines = data.split('\n');
+        for (let line of lines) {
+            parts = line.split(':');
+            saves.push({
+                "name": parts[0],
+                "uuid": parts[1]
+            });
+        }
+    }
+});
+
+fs.writeFile("./test", "Hey there!", function(err) {
+    if(err) {
+        return console.log(err);
+    }
+
+    console.log("The file was saved!");
+}); 
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -23,8 +49,6 @@ bot.on('ready', function (evt) {
     logger.info(bot.username + ' - (' + bot.id + ')');
 });
 bot.on('message', function (user, userID, channelID, message, evt) {
-    // Our bot needs to know if it will execute a command
-    // It will listen for messages that will start with `!`
     if (message.substring(0, 2) == '!z') {
         let args = message.substring(2).split(/\s+/);
         let idx = 0
@@ -44,7 +68,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
         args = args.splice(1);
         switch(cmd) {
-            // !ping
             case 'play':
                 sendCommand('look');
             break;
@@ -59,7 +82,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                     to: channelID,
                     message: 'lol what?'
                 });
-            // Just add any case commands if you want to..
          }
      }
 });
