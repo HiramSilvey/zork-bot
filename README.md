@@ -10,4 +10,4 @@ Play Zork through a bot on Discord!
 1. A game will automatically close after 2 hours of inactivity
 
 ### The One Command
-l[oad] [savedGameName]: lists all saved games, loads the selected saved game, or starts a vote to change the current loaded game to the selected saved game
+!zload [savedGameName]: lists all saved games, loads the selected saved game, or starts a vote to change the current loaded game to the selected saved game
