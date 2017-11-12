@@ -70,30 +70,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     }
 
     if (message.substring(0, 2) == '!z') {
-        let args = message.toLowerCase().substring(2).split(/\s+/);
-        let idx = 0;
-        let cmd = '';
-
-        if (args[0] == '' && args.length > idx) {
-            cmd = args[1];
+        if (message.substring(2, 6) == 'load') {
+            let args = message.toLowerCase().substring(6).split(/\s+/);
+            if (args.length < 2) {
+                // list saves
+            } else {
+                savedGameName = args[1];
+                // load savedGameName
+            }
+            return;
         }
-        switch (cmd) {
-            case 'play':
-                activePlayers.add(userID);
-                sendCommand('look');
-                break;
-            case 'quit':
-                activePlayers.delete(userID);
-                bot.sendMessage({
-                    to: channelID,
-                    message: 'thanks for playing @' + user + '!'
-                });
-                break;
-            default:
-                return
-        }
-    } else if (activePlayers.has(userID)) {
-        sendCommand(message);
-        return;
+        sendCommand(message.substring(2));
     }
 });
