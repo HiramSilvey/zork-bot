@@ -7,10 +7,10 @@ const fs = require('fs')
 
 const saveFile = './.saves' // file containing saved game names and UUIDs
 const baseURL = 'http://zork.ruf.io/' // the API base URL
-// const timeOut = 3600000 // one hour in ms
+const timeOut = 3600000 // one hour in ms
 
 let saves = {} // {saved game ID : UUID}
-// let activePlayers = {} // {active player ID : expire time}
+let activePlayers = {} // {active player ID : expire time}
 let activeUUID = null // the active game's UUID
 
 // Configure logger settings
@@ -42,7 +42,6 @@ bot.on('ready', function (evt) {
   logger.info(bot.username + ' - (' + bot.id + ')')
 })
 
-/*
 function cleanActivePlayers () {
   let keys = Object.keys(activePlayers)
   let currTime = new Date().getTime()
@@ -52,7 +51,6 @@ function cleanActivePlayers () {
     }
   }
 }
-*/
 
 // react when message is sent in the server chat
 bot.on('message', function (user, userID, channelID, message, evt) {
@@ -79,7 +77,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   }
 
   if (message.substring(0, 2) === '!z') {
-    // activePlayers[userID] = new Date().getTime() + timeOut
+    activePlayers[userID] = new Date().getTime() + timeOut
     if (message.substring(2, 6) === 'load') {
       let args = message.toLowerCase().substring(6).split(/\s+/)
       if (args.length < 2) {
@@ -114,7 +112,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           }
           savedGameName = keys[index - 1]
         }
-        /*
         cleanActivePlayers()
         let players = Object.keys(activePlayers)
         if (players.length > 1) {
@@ -130,7 +127,6 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             message: msg
           })
         }
-        */
         if (savedGameName in saves) {
           // load savedGameName
           activeUUID = saves[savedGameName]
