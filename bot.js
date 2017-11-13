@@ -71,7 +71,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   function noneLoaded () {
     bot.sendMessage({
       to: channelID,
-      message: "No games are currently loaded.\nTry '!zload' to see the current saved games"
+      message: "No games are currently loaded\nTry '!zload' to see the current saved games"
     })
   }
 
@@ -97,7 +97,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         if (keys.length === 0) {
           bot.sendMessage({
             to: channelID,
-            message: "No games found.\nTry '!zload New Game Name' to create a new game with the name 'New Game Name'"
+            message: "No games found\nTry '!zload New Game Name' to create a new game with the name 'New Game Name'"
           })
         } else {
           // create a nicely formatted saved game list
