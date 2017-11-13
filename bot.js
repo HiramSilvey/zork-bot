@@ -7,10 +7,10 @@ const fs = require('fs')
 
 const saveFile = './.saves' // file containing saved game names and UUIDs
 const baseURL = 'http://zork.ruf.io/' // the API base URL
-const timeOut = 3600000 // one hour in ms
+// const timeOut = 3600000 // one hour in ms
 
 let saves = {} // {saved game ID : UUID}
-let activePlayers = {} // {active player ID : expire time}
+// let activePlayers = {} // {active player ID : expire time}
 let activeUUID = null // the active game's UUID
 
 // Configure logger settings
@@ -79,7 +79,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   }
 
   if (message.substring(0, 2) === '!z') {
-    activePlayers[userID] = new Date().getTime() + timeOut
+    // activePlayers[userID] = new Date().getTime() + timeOut
     if (message.substring(2, 6) === 'load') {
       let args = message.toLowerCase().substring(6).split(/\s+/)
       if (args.length < 2) {
