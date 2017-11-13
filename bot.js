@@ -80,7 +80,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
                 let index = parseInt(savedGameName);
                 if (!isNaN(index) && isFinite(savedGameName)) {
                     let keys = Object.keys(saves);
-                    if (keys.length < index || index == 0) {
+                    if (keys.length < index || index <= 0) {
                         bot.sendMessage({
                             to: channelID,
                             message: "Oops! I can't find that game, try again"
