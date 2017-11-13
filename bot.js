@@ -8,8 +8,8 @@ const fs = require('fs')
 const saveFile = './.saves' // file containing saved game names and UUIDs
 const baseURL = 'http://zork.ruf.io/' // the API base URL
 
-let saves = {} // {saved game ID : UUID}
-let activeUUID = null // the active game's UUID
+let saves = {} // {channel ID: {saved game ID : UUID}}
+let activeUUIDs = {} // {channel ID: active UUID}
 
 // configure logger settings
 logger.remove(logger.transports.Console)
@@ -42,10 +42,9 @@ bot.on('ready', function (evt) {
 
 // react when message is sent in the server chat
 bot.on('message', function (user, userID, channelID, message, evt) {
-
   // send a command to the Zork API and say the response
   function sendCommand (cmd) {
-    request(baseURL + activeUUID + '>' + cmd, function (error, response, body) {
+    request(baseURL + activeUUIDs[channelID] + '>' + cmd, function (error, response, body) {
       // handle API error
       if (error) {
         bot.sendMessage({
@@ -72,11 +71,16 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   if (message.substring(0, 2) === '!z') {
     // if it's the special bot command '!zload' then handle accordingly
     if (message.substring(2, 6) === 'load') {
+      // get the saves that correspond to the specific channel
+      let localSaves = {}
+      if (channelID in saves) {
+        localSaves = saves[channelID]
+      }
       // split message by spaces
       let args = message.toLowerCase().substring(6).split(/\s+/)
       // if there's no arguments then just list the saved games
       if (args.length < 2) {
-        let keys = Object.keys(saves)
+        let keys = Object.keys(localSaves)
         if (keys.length === 0) {
           bot.sendMessage({
             to: channelID,
@@ -90,7 +94,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           }
           bot.sendMessage({
             to: channelID,
-            message: 'Current saved games:\n' + savedList + '\nTo load ' + keys[0] + ", try '!zload 1' or '!zload " + keys[0] + "'"
+            message: 'Current saved games:\n' + savedList + "\nTo load '" + keys[0] + "', try '!zload 1' or '!zload " + keys[0] + "'"
           })
         }
       // try to load the specified saved game
@@ -99,7 +103,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         // if the game is specified by an index, transform it into the string name equivalent
         let index = parseInt(savedGameName)
         if (!isNaN(index) && isFinite(savedGameName)) {
-          let keys = Object.keys(saves)
+          let keys = Object.keys(localSaves)
           if (keys.length < index || index <= 0) {
             bot.sendMessage({
               to: channelID,
@@ -110,12 +114,13 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           savedGameName = keys[index - 1]
         }
         // load the saved game
-        if (savedGameName in saves) {
-          activeUUID = saves[savedGameName]
+        if (savedGameName in localSaves) {
+          activeUUIDs[channelID] = localSaves[savedGameName]
         // create a new game
         } else {
-          activeUUID = uuidv4()
-          saves[savedGameName] = activeUUID
+          activeUUIDs[channelID] = uuidv4()
+          localSaves[savedGameName] = activeUUIDs[channelID]
+          saves[channelID] = localSaves
           fs.writeFile(saveFile, JSON.stringify(saves), function (err) {
             if (err) {
               return console.log(err)
@@ -132,10 +137,10 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       return
     }
     // handle if no game is currently loaded
-    if (activeUUID == null) {
+    if (!(channelID in activeUUIDs)) {
       bot.sendMessage({
         to: channelID,
-        message: "No games are currently loadad. Try '!zload' to see the current saved games"
+        message: "No games are currently loaded. Try '!zload' to see the current saved games"
       })
     // send the message as a command for the current game
     } else {
