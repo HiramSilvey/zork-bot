@@ -5,16 +5,13 @@ const uuidv4 = require('uuid/v4')
 const auth = require('./auth.json')
 const fs = require('fs')
 
-// file containing saved game names and UUIDs
-const saveFile = './.saves'
-// the API base URL
-const baseURL = 'http://zork.ruf.io/'
+const saveFile = './.saves' // file containing saved game names and UUIDs
+const baseURL = 'http://zork.ruf.io/' // the API base URL
+const timeOut = 3600000 // one hour in ms
 
-// saveFile read into an object
-let saves = {}
-// let activePlayers = new Set();
-// the active game's UUID
-let activeUUID = null
+let saves = {} // {saved game ID : UUID}
+let activePlayers = {} // {active player ID : expire time}
+let activeUUID = null // the active game's UUID
 
 // Configure logger settings
 logger.remove(logger.transports.Console)
@@ -23,6 +20,7 @@ logger.add(logger.transports.Console, {
 })
 logger.level = 'debug'
 
+// load the saved game data
 fs.readFile(saveFile, (err, data) => {
   if (err) {
     logger.error(err)
@@ -31,16 +29,32 @@ fs.readFile(saveFile, (err, data) => {
   }
 })
 
-// Initialize Discord Bot
+// initialize discord bot
 let bot = new Discord.Client({
   token: auth.token,
   autorun: true
 })
+
+// log when bot connects
 bot.on('ready', function (evt) {
   logger.info('Connected')
   logger.info('Logged in as: ')
   logger.info(bot.username + ' - (' + bot.id + ')')
 })
+
+/*
+function cleanActivePlayers () {
+  let keys = Object.keys(activePlayers)
+  let currTime = new Date().getTime()
+  for (let key in keys) {
+    if (activePlayers[key] - currTime >= 0) {
+      delete activePlayers[key]
+    }
+  }
+}
+*/
+
+// react when message is sent in the server chat
 bot.on('message', function (user, userID, channelID, message, evt) {
   function sendCommand (cmd) {
     request(baseURL + activeUUID + '>' + cmd, function (error, response, body) {
@@ -65,6 +79,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
   }
 
   if (message.substring(0, 2) === '!z') {
+    activePlayers[userID] = new Date().getTime() + timeOut
     if (message.substring(2, 6) === 'load') {
       let args = message.toLowerCase().substring(6).split(/\s+/)
       if (args.length < 2) {
@@ -99,6 +114,23 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           }
           savedGameName = keys[index - 1]
         }
+        /*
+        cleanActivePlayers()
+        let players = Object.keys(activePlayers)
+        if (players.length > 1) {
+          let msg = '<@' + userID + '> wants to change the game to ' + savedGameName + '\n\n'
+          for (let i = 0; i < players.length; i++) {
+            if (players[i] !== userID) {
+              msg += '<@' + players[i] + '> '
+            }
+          }
+          msg += "please vote with '!z yes' if you want to change or '!z no' if you don't"
+          bot.sendMessage({
+            to: channelID,
+            message: msg
+          })
+        }
+        */
         if (savedGameName in saves) {
           // load savedGameName
           activeUUID = saves[savedGameName]
