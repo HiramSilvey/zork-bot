@@ -1,14 +1,16 @@
-let Discord = require('discord.io');
-let logger = require('winston');
-let request = require('request');
-let uuid = require('uuid');
-let auth = require('./auth.json');
-let fs = require('fs');
+const Discord = require('discord.io');
+const logger = require('winston');
+const request = require('request');
+const uuidv4 = require('uuid/v4');
+const auth = require('./auth.json');
+const fs = require('fs');
 
-let baseURL = "http://zork.ruf.io/";
+const saveFile = './.saves'
+const baseURL = 'http://zork.ruf.io/';
 
-let saves = []
-let activePlayers = new Set()
+let saves = {};
+// let activePlayers = new Set();
+let activeUUID = null;
 
 // Configure logger settings
 logger.remove(logger.transports.Console);
@@ -17,30 +19,13 @@ logger.add(logger.transports.Console, {
 });
 logger.level = 'debug';
 
-fs.readFile("./.saves", (err, data) => {
+fs.readFile(saveFile, (err, data) => {
     if (err) {
         logger.error(err);
     } else {
-        let lines = data.split('\n');
-        for (let line of lines) {
-            parts = line.split(':');
-            saves.push({
-                "name": parts[0],
-                "uuid": parts[1]
-            });
-        }
+        saves = JSON.parse(data);
     }
 });
-
-/*
-fs.writeFile("./test", "Hey there!", function (err) {
-    if (err) {
-        return console.log(err);
-    }
-
-    console.log("The file was saved!");
-});
-*/
 
 // Initialize Discord Bot
 let bot = new Discord.Client({
@@ -55,12 +40,12 @@ bot.on('ready', function (evt) {
 bot.on('message', function (user, userID, channelID, message, evt) {
 
     function sendCommand(cmd) {
-        request(baseURL + '>' + cmd, function (error, response, body) {
+        request(baseURL + activeUUID + '>' + cmd, function (error, response, body) {
             let msg = ''
             try {
                 msg = JSON.parse(body)['msg'].substring(1);
             } catch (err) {
-                logger.warning('Bad JSON recieved, ignoring...');
+                logger.warn('Bad JSON recieved, ignoring...');
             }
             bot.sendMessage({
                 to: channelID,
@@ -74,9 +59,54 @@ bot.on('message', function (user, userID, channelID, message, evt) {
             let args = message.toLowerCase().substring(6).split(/\s+/);
             if (args.length < 2) {
                 // list saves
+                let keys = Object.keys(saves);
+                if (keys.length == 0) {
+                    bot.sendMessage({
+                        to: channelID,
+                        message: "Oops! No games found. Try:\n\t!zload New Game Name\nto create a new game with the name 'New Game Name'"
+                    });
+                } else {
+                    let savedList = ''
+                    for (let i = 0; i < keys.length; i++) {
+                        savedList += '\t' + (i + 1).toString() + '. ' + keys[i] + '\n';
+                    }
+                    bot.sendMessage({
+                        to: channelID,
+                        message: 'Current saved games:\n' + savedList
+                    });
+                }
             } else {
-                savedGameName = args[1];
-                // load savedGameName
+                savedGameName = args.slice(1).join(' ');
+                let index = parseInt(savedGameName);
+                if (!isNaN(index) && isFinite(savedGameName)) {
+                    let keys = Object.keys(saves);
+                    if (keys.length < index || index == 0) {
+                        bot.sendMessage({
+                            to: channelID,
+                            message: "Oops! I can't find that game, try again"
+                        });
+                        return;
+                    }
+                    savedGameName = keys[index - 1];
+                }
+                if (savedGameName in saves) {
+                    // load savedGameName
+                    activeUUID = saves[savedGameName];
+                } else {
+                    // create savedGameName
+                    activeUUID = uuidv4();
+                    saves[savedGameName] = activeUUID;
+                    fs.writeFile(saveFile, JSON.stringify(saves), function (err) {
+                        if (err) {
+                            return console.log(err);
+                        }
+                        console.log("The file was saved!");
+                    });
+                }
+                bot.sendMessage({
+                    to: channelID,
+                    message: sendCommand('look')
+                });
             }
             return;
         }
