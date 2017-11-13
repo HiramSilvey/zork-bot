@@ -67,24 +67,37 @@ bot.on('message', function (user, userID, channelID, message, evt) {
     })
   }
 
+  // message to say if no games are currently loaded
+  function noneLoaded () {
+    bot.sendMessage({
+      to: channelID,
+      message: "No games are currently loaded.\nTry '!zload' to see the current saved games"
+    })
+  }
+
   // handle zork command
   if (message.substring(0, 2) === '!z') {
     // if it's the special bot command '!zload' then handle accordingly
-    if (message.substring(2, 6) === 'load') {
+    if (message.substring(2, 3) === 'l' || message.substring(2, 6) === 'load') {
       // get the saves that correspond to the specific channel
       let localSaves = {}
       if (channelID in saves) {
         localSaves = saves[channelID]
       }
       // split message by spaces
-      let args = message.toLowerCase().substring(6).split(/\s+/)
+      let args = []
+      if (message.substring(2, 6) === 'load') {
+        args = message.toLowerCase().substring(6).split(/\s+/)
+      } else {
+        args = message.toLowerCase().substring(3).split(/\s+/)
+      }
       // if there's no arguments then just list the saved games
       if (args.length < 2) {
         let keys = Object.keys(localSaves)
         if (keys.length === 0) {
           bot.sendMessage({
             to: channelID,
-            message: "No games found. Try '!zload New Game Name' to create a new game with the name 'New Game Name'"
+            message: "No games found.\nTry '!zload New Game Name' to create a new game with the name 'New Game Name'"
           })
         } else {
           // create a nicely formatted saved game list
@@ -135,13 +148,30 @@ bot.on('message', function (user, userID, channelID, message, evt) {
         })
       }
       return
+    // try to quit the current game
+    } else if (message.substring(2, 3) === 'q' || message.substring(2, 6) === 'quit') {
+      if (channelID in activeUUIDs) {
+        delete activeUUIDs[channelID]
+        bot.sendMessage({
+          to: channelID,
+          message: 'Thanks for playing!'
+        })
+      // handle if no game is currently loaded
+      } else {
+        noneLoaded()
+      }
+      return
+    // get the list of commands
+    } else if (message.substring(2, 3) === 'h' || message.substring(2, 6) === 'help') {
+      bot.sendMessage({
+        to: channelID,
+        message: 'Commands:\n\t!zl[oad] [saved game]\n\t!zq[uit]\n\t!zh[elp]\n\t!z [command]'
+      })
+      return
     }
     // handle if no game is currently loaded
     if (!(channelID in activeUUIDs)) {
-      bot.sendMessage({
-        to: channelID,
-        message: "No games are currently loaded. Try '!zload' to see the current saved games"
-      })
+      noneLoaded()
     // send the message as a command for the current game
     } else {
       sendCommand(message.substring(2))
