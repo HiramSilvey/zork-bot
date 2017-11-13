@@ -90,7 +90,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           }
           bot.sendMessage({
             to: channelID,
-            message: 'Current saved games:\n' + savedList + "\n\nTo load game 1, try '!zload 1' or '!zload " + keys[0] + "'"
+            message: 'Current saved games:\n' + savedList + '\nTo load ' + keys[0] + ", try '!zload 1' or '!zload " + keys[0] + "'"
           })
         }
       // try to load the specified saved game
