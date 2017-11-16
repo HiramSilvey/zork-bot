@@ -7,11 +7,10 @@ const fs = require('fs')
 
 const saveFile = './.saves' // file containing saved game names and UUIDs
 const baseURL = 'http://zork.ruf.io/' // the API base URL
-const msgTimeout = 1000 // 1 second timeout
 
 let saves = {} // {channel ID: {saved game ID : UUID}}
 let activeUUIDs = {} // {channel ID: active UUID}
-let activeMsgTime = {} // {channel ID: last accepted message timeout}
+let activeMsg = {} // {channel ID: true or false}
 
 // configure logger settings
 logger.remove(logger.transports.Console)
@@ -47,6 +46,7 @@ function sendMessage (userID, channelID, message) {
     to: channelID,
     message: '<@' + userID + '>\n' + message
   })
+  activeMsg[channelID] = false
 }
 
 // react when message is sent in the server chat
@@ -64,8 +64,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
       try {
         msg = JSON.parse(body)['msg'].substring(1)
       } catch (err) {
-        logger.warn('Bad JSON recieved, ignoring...')
-        return
+        msg = 'Something seems to have gone wrong... try again'
       }
       sendMessage(userID, channelID, msg)
     })
@@ -78,12 +77,11 @@ bot.on('message', function (user, userID, channelID, message, evt) {
 
   // handle zork command
   if (message.substring(0, 2) === '!z') {
-    // only accept messages that are outside of the timeout window
-    let currTime = new Date().getTime()
-    if (channelID in activeMsgTime && activeMsgTime[channelID] > currTime) {
+    // only accept messages after the current message has been responded to
+    if (channelID in activeMsg && activeMsg[channelID] === true) {
       return
     }
-    activeMsgTime[channelID] = currTime + msgTimeout
+    activeMsg[channelID] = true
     // if it's the special bot command '!zload' then handle accordingly
     if (message.substring(2, 3) === 'l' || message.substring(2, 6) === 'load') {
       // get the saves that correspond to the specific channel
@@ -134,7 +132,7 @@ bot.on('message', function (user, userID, channelID, message, evt) {
           saves[channelID] = localSaves
           fs.writeFile(saveFile, JSON.stringify(saves), function (err) {
             if (err) {
-              return console.log(err)
+              sendMessage(userID, channelID, 'There was a problem creating your game, try again')
             }
             logger.info('Game ' + savedGameName + ' successfully created!')
           })
